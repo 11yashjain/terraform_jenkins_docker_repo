@@ -15,14 +15,14 @@ pipeline {
       }
     }
 
-    stage('Get ACR Login Server') {
-      steps {
-        script {
-          def output = bat(script: 'terraform -chdir=terraform output -raw acr_login_server', returnStdout: true).trim()
-          env.ACR_LOGIN_SERVER = output
-        }
-      }
+    stage('Login to ACR') {
+    steps {
+        bat """
+        echo Logging in to ACR: %ACR_NAME%
+        az acr login --name %ACR_NAME%
+        """
     }
+}
 
     stage('Docker Build & Push') {
       steps {
