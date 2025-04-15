@@ -30,20 +30,21 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    def acrLoginServer = "${env.ACR_NAME}.azurecr.io"
-                    bat """
-                    echo Building Docker Image...
-                    docker build -t %IMAGE_NAME% .
-                    
-                    echo Tagging Image...
-                    docker tag %IMAGE_NAME% ${acrLoginServer}/%IMAGE_NAME%
-                    
-                    echo Pushing Image to ACR...
-                    docker push ${acrLoginServer}/%IMAGE_NAME%
-                    """
-                }
-            }
+            def acrLoginServer = "${env.ACR_NAME}.azurecr.io"
+            bat """
+            echo Building Docker Image...
+            docker build -t %IMAGE_NAME% ./MyApi
+
+            echo Tagging Image...
+            docker tag %IMAGE_NAME% ${acrLoginServer}/%IMAGE_NAME%
+
+            echo Pushing Image to ACR...
+            docker push ${acrLoginServer}/%IMAGE_NAME%
+            """
         }
+    }
+}
+
 
         stage('Deploy to AKS') {
             steps {
