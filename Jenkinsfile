@@ -1,53 +1,60 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    IMAGE_NAME = 'myapi'
-  }
+    environment {
+        ACR_NAME = "myacryashj"
+        IMAGE_NAME = "myapi"
+        RESOURCE_GROUP = "aks-rg"
+        CLUSTER_NAME = "myAKSCluster"
+    }
 
-  stages {
-    stage('Terraform - Provision Infrastructure') {
-      steps {
-        dir('terraform') {
-          bat 'terraform init'
-          bat 'terraform apply -auto-approve'
+    stages {
+        stage('Terraform - Provision Infrastructure') {
+            steps {
+                dir('terraform') {
+                    bat 'terraform init'
+                    bat 'terraform apply -auto-approve'
+                }
+            }
         }
-      }
-    }
 
-    stage('Login to ACR') {
-    steps {
-        bat """
-        echo Logging in to ACR: %ACR_NAME%
-        az acr login --name %ACR_NAME%
-        """
-    }
-}
-
-    stage('Docker Build & Push') {
-      steps {
-        script {
-          def acrName = env.ACR_LOGIN_SERVER.tokenize('.')[0]
-
-          bat "az acr login --name ${acrName}"
-          bat "docker build -t ${env.ACR_LOGIN_SERVER}/${env.IMAGE_NAME}:latest -f Dockerfile ."
-          bat "docker push ${env.ACR_LOGIN_SERVER}/${env.IMAGE_NAME}:latest"
+        stage('Login to ACR') {
+            steps {
+                bat """
+                echo Logging in to ACR: %ACR_NAME%
+                az acr login --name %ACR_NAME%
+                """
+            }
         }
-      }
-    }
 
-    stage('Deploy to AKS') {
-      steps {
-        script {
-          bat 'az aks get-credentials --resource-group aks-rg --name myAKSCluster'
-
-          // Create a temp file for the updated deployment.yaml
-          writeFile file: 'updated-deployment.yaml', text: readFile('deployment.yaml')
-            .replaceAll('<ACR_LOGIN_SERVER>', env.ACR_LOGIN_SERVER)
-
-          bat 'kubectl apply -f updated-deployment.yaml'
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    def acrLoginServer = "${env.ACR_NAME}.azurecr.io"
+                    bat """
+                    echo Building Docker Image...
+                    docker build -t %IMAGE_NAME% .
+                    
+                    echo Tagging Image...
+                    docker tag %IMAGE_NAME% ${acrLoginServer}/%IMAGE_NAME%
+                    
+                    echo Pushing Image to ACR...
+                    docker push ${acrLoginServer}/%IMAGE_NAME%
+                    """
+                }
+            }
         }
-      }
+
+        stage('Deploy to AKS') {
+            steps {
+                bat """
+                echo Getting AKS Credentials...
+                az aks get-credentials --resource-group %RESOURCE_GROUP% --name %CLUSTER_NAME% --overwrite-existing
+
+                echo Applying Kubernetes Deployment...
+                kubectl apply -f deployment.yaml
+                """
+            }
+        }
     }
-  }
 }
