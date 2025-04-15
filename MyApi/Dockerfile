@@ -1,6 +1,5 @@
 # Base runtime image (ASP.NET 8)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-# USER $APP_UID  # Removed for compatibility with Jenkins build
 USER root
 WORKDIR /app
 EXPOSE 8080
@@ -10,10 +9,9 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["MyApi/MyApi.csproj", "MyApi/"]
-RUN dotnet restore "MyApi/MyApi.csproj"
-COPY . .
-WORKDIR "/src/MyApi"
+COPY MyApi.csproj .  # Adjusted because Dockerfile is already in MyApi/
+RUN dotnet restore "MyApi.csproj"
+COPY . .  # Copies everything inside MyApi/
 RUN dotnet build "MyApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Publish the app
