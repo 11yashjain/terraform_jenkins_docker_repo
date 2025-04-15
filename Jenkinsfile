@@ -33,7 +33,7 @@ pipeline {
                 def acrLoginServer = "${env.ACR_NAME}.azurecr.io"
                 bat """
                 echo Building Docker Image...
-                docker build -t %IMAGE_NAME% ./MyApi
+                docker build -t %IMAGE_NAME% -f MyApi/Dockerfile .
 
                 echo Tagging Image...
                 docker tag %IMAGE_NAME% ${acrLoginServer}/%IMAGE_NAME%
